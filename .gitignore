@@ -1,0 +1,20 @@
+# ARQUIVOS GERADOS PELO COMPILADOR LATEX
+# -------------------------------------
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+
+# Configurações de IDEs (Opcional, mas recomendado)
+# -------------------------------------------------
+.vscode/
+.idea/

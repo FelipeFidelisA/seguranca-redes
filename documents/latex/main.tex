@@ -1,0 +1,96 @@
+% ...existing code...
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+
+\title{Segurança da Informação}
+\author{Alexandre Neves, Felipe Fidelis}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introdução}
+Este é um documento mínimo em LaTeX. Substitua o conteúdo conforme necessário.
+
+\section{Política de Segurança e Uso dos Computadores dos Laboratórios}
+
+\subsection{Objetivo}
+
+Estabelecer diretrizes e responsabilidades para garantir a segurança, integridade, disponibilidade e uso adequado dos recursos de informática (hardware, software e rede) presentes nos laboratórios do Instituto Federal Goiano - Campus Ceres, prevenindo acessos não autorizados, danos e mau uso.
+
+\subsection{Âmbito de Aplicação}
+
+Esta política aplica-se a todos os usuários (estudantes, professores, pesquisadores e técnicos) que utilizam os computadores localizados nos laboratórios da instituição.
+
+\subsection{Diretrizes Gerais de Uso (Para Todos os Usuários)}
+
+\subsubsection{Uso de Contas de Acesso}
+\begin{enumerate}
+    \item \textbf{Contas Individuais e Não Compartilháveis:} Cada usuário (aluno e professor) deve utilizar sua conta de acesso pessoal e intransferível. \textbf{É estritamente proibido compartilhar senhas ou utilizar contas de terceiros.}
+    \item \textbf{Senhas Fortes:} As senhas devem seguir os requisitos mínimos de complexidade definidos pela instituição (ex: mínimo de 8 caracteres, com letras maiúsculas, minúsculas, números e símbolos).
+    \item \textbf{Logout e Bloqueio:} Os usuários devem sempre efetuar \emph{logout} ou bloquear a estação de trabalho ao se ausentarem, mesmo que por um breve período.
+    \item \textbf{Monitoramento:} A instituição reserva-se o direito de monitorar o uso dos equipamentos para fins de manutenção e segurança, conforme a legislação vigente.
+\end{enumerate}
+
+\subsection{Software e Configurações}
+\begin{enumerate}
+    \item \textbf{Instalação e Configuração de Ambiente de Desenvolvimento (Sistemas Multiusuários):} É proibida a modificação ou remoção de qualquer software, aplicativo ou arquivo executável que faça parte do sistema operacional base. \textbf{EXCEÇÃO - Configuração de Ambiente:} Nos laboratórios dos cursos de Sistemas de Informação, Informática para Internet e Inteligência Artificial, é permitido que o aluno realize a configuração do seu ambiente de desenvolvimento pessoal (\emph{personal environment}) para fins curriculares, \textbf{desde que}:
+    \begin{enumerate}
+        \item A instalação de bibliotecas, pacotes e \emph{frameworks} seja feita utilizando \textbf{gerenciadores de pacotes com escopo local} (ex: \texttt{pip --user}, \texttt{npm} em modo local, gerenciadores de ambientes virtuais como \texttt{conda} ou \texttt{venv}).
+        \item A configuração de variáveis de ambiente, como o \texttt{PATH}, seja feita estritamente através dos arquivos de configuração da \emph{shell} no diretório \texttt{home} do usuário.
+        \item \textbf{Não seja utilizada a elevação de privilégios de administrador} (\texttt{sudo} ou \texttt{root}) para qualquer instalação ou configuração.
+    \end{enumerate}
+    
+    \item \textbf{Uso de Contêineres e Virtualização:} Para tarefas que exijam contêineres (\emph{Docker, Podman}), o aluno deve, prioritariamente, utilizar soluções \emph{rootless} (que não requerem acesso de administrador) ou ambientes de desenvolvimento pré-configurados e aprovados pela TI. A concessão de acesso ao grupo \texttt{docker} é proibida por representar risco de segurança à máquina hospedeira.
+    
+    \item \textbf{Downloads Não Autorizados:} É proibido o download e/ou armazenamento de conteúdo ilegal, malicioso (\emph{vírus, malware}), pornográfico ou que viole direitos autorais.
+    \item \textbf{Alteração de Configurações:} É proibida a alteração de configurações de sistema, rede, papel de parede, \emph{screensaver} ou qualquer ajuste que comprometa o padrão operacional da máquina.
+\end{enumerate}
+
+\subsubsection{Uso da Rede e Internet}
+\begin{enumerate}
+    \item \textbf{Acesso Remoto (\emph{SSH, VNC, RDP}):} O acesso remoto entre estações de alunos é estritamente proibido. O uso de protocolos de acesso remoto para fins acadêmicos ou de pesquisa deve ser formalmente solicitado e limitado a servidores específicos da instituição, conforme as regras de \emph{firewall} e segurança.
+    \item \textbf{Comportamento Ético:} É proibido utilizar a rede para fins que violem a lei, promovam \emph{hacking, phishing} ou qualquer atividade que cause prejuízo à instituição ou a terceiros.
+\end{enumerate}
+
+\subsection{Diretrizes Específicas para Alunos}
+\begin{enumerate}
+    \item \textbf{Uso Exclusivo para Fins Acadêmicos:} Os computadores dos laboratórios destinam-se primariamente a atividades de ensino, pesquisa e extensão. O uso pessoal excessivo (jogos, redes sociais, \emph{streaming}) pode ser restringido.
+    \item \textbf{Armazenamento Temporário:} Arquivos pessoais devem ser salvos em serviços de armazenamento em nuvem da instituição (se disponíveis) ou em mídias externas. A instituição não se responsabiliza por arquivos salvos no disco local, que podem ser apagados a qualquer momento (ex: no \emph{reboot} da máquina).
+\end{enumerate}
+
+\subsection{Diretrizes Específicas para Professores/Docentes}
+
+\subsubsection{Segurança da Estação Docente (Mesa do Professor)}
+\begin{enumerate}
+    \item \textbf{Desativação de Serviços Desnecessários:} O serviço \textbf{SSH (ou qualquer outro serviço de acesso remoto como VNC ou RDP)} deve ser \textbf{desativado} na estação do professor por padrão. Ele só poderá ser ativado temporariamente para propósitos didáticos específicos, e deve ser desativado imediatamente após o uso.
+    \item \textbf{Firewall Rigoroso:} O \emph{firewall} da estação docente deve estar sempre ativo e configurado para \textbf{bloquear todas as conexões de entrada}, exceto aquelas absolutamente necessárias para o funcionamento em sala de aula (ex: projeção de tela).
+    \item \textbf{Contas de Usuário:} O professor deve utilizar uma \textbf{conta de usuário padrão (não administrador)} para as aulas, reservando a conta de administrador para tarefas de manutenção ou instalação de software, se necessário.
+    \item \textbf{Autenticação Dupla (Se Possível):} Em máquinas com acesso a sistemas sensíveis, considerar o uso de autenticação de dois fatores ou o bloqueio por senha robusta no \emph{login} inicial.
+    \item \textbf{Acesso Físico:} O professor deve garantir que a estação docente esteja fisicamente segura (ex: \emph{case} com trava ou cabo de segurança), limitando o acesso a portas USB ou físicas por alunos.
+\end{enumerate}
+
+\subsubsection{Responsabilidades do Professor em Sala de Aula}
+\begin{enumerate}
+    \item \textbf{Conscientização:} O professor deve orientar os alunos sobre esta política no início de cada disciplina.
+    \item \textbf{Monitoramento:} O professor é o responsável imediato por monitorar o comportamento dos alunos no laboratório e reportar atividades suspeitas ou violações de segurança ao setor de TI.
+    \item \textbf{Projeção de Tela:} Antes de iniciar a projeção (\emph{datashow}), o professor deve verificar a tela, garantindo que nenhuma aplicação não autorizada esteja sendo executada.
+\end{enumerate}
+
+\subsection{Medidas Disciplinares}
+
+O não cumprimento desta Política de Segurança e Uso constitui uma violação das normas internas da instituição e acarretará as seguintes medidas disciplinares:
+\begin{enumerate}
+    \item \textbf{Advertência:} Em casos de primeira ocorrência e infração leve.
+    \item \textbf{Suspensão de Acesso:} Suspensão temporária do acesso aos laboratórios e/ou à rede institucional.
+    \item \textbf{Processo Disciplinar:} Em casos de infrações graves, reincidência ou prejuízos à instituição, o usuário será submetido a um processo disciplinar, podendo resultar em expulsão (para alunos) ou outras medidas cabíveis.
+    \item \textbf{Ações Legais:} A instituição poderá tomar medidas legais em casos de crimes cibernéticos ou danos materiais e morais, conforme a legislação brasileira.
+\end{enumerate}
+
+\subsection{Revisão da Política}
+
+Esta política será revisada e atualizada anualmente ou sempre que houver mudanças significativas na infraestrutura tecnológica ou nas necessidades de segurança da instituição.
+\end{document}
