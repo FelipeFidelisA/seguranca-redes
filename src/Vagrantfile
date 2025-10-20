@@ -1,0 +1,81 @@
+Vagrant.configure("2") do |config|
+  # Box padrão para todas (pode mudar por VM)
+  BOX_NAME = "ubuntu/bionic64"
+
+  # Configurações comuns (sincronização de pasta padrão, etc)
+  config.vm.synced_folder ".", "/vagrant", disabled: false
+
+  ####################
+  # VM: alvo
+  ####################
+  config.vm.define "alvo" do |alvo|
+    alvo.vm.box = BOX_NAME
+    alvo.vm.hostname = "alvo"
+    alvo.vm.network "private_network", ip: "192.168.56.10"
+
+    # Recursos
+    alvo.vm.provider "virtualbox" do |vb|
+      vb.name = "vagrant-alvo"
+      vb.memory = 1024
+      vb.cpus = 1
+    end
+
+    # Provision (ex: instala openssh-server e atualiza)
+    alvo.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get install -y --no-install-recommends openssh-server
+      # colocar aqui outros comandos de configuração do alvo
+    SHELL
+  end
+
+  ####################
+  # VM: alvo-hardened
+  ####################
+  config.vm.define "alvo-hardened" do |h|
+    h.vm.box = BOX_NAME
+    h.vm.hostname = "alvo-hardened"
+    h.vm.network "private_network", ip: "192.168.56.11"
+
+    h.vm.provider "virtualbox" do |vb|
+      vb.name = "vagrant-alvo-hardened"
+      vb.memory = 2048
+      vb.cpus = 2
+    end
+
+    # Provision que faz "hardening" básico (ex: bloqueia portas desnecessárias, atualiza)
+    h.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get upgrade -y
+      apt-get install -y ufw fail2ban
+      # exemplo: fechar portas por padrão e liberar só ssh (ou outra configuração)
+      ufw default deny incoming
+      ufw default allow outgoing
+      ufw allow 22/tcp
+      ufw --force enable
+      systemctl enable fail2ban
+      # aqui você pode aplicar scripts de hardening mais complexos
+    SHELL
+  end
+
+  ####################
+  # VM: atacante
+  ####################
+  config.vm.define "atacante" do |atk|
+    atk.vm.box = BOX_NAME
+    atk.vm.hostname = "atacante"
+    atk.vm.network "private_network", ip: "192.168.56.20"
+
+    atk.vm.provider "virtualbox" do |vb|
+      vb.name = "vagrant-atacante"
+      vb.memory = 2048
+      vb.cpus = 2
+    end
+
+    # Provision: instala ferramentas de teste/ataque (ex: nmap, tcpdump)
+    atk.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get install -y nmap tcpdump net-tools iproute2
+      # cuidado: use essas ferramentas apenas em ambientes controlados
+    SHELL
+  end
+end

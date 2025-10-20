@@ -18,3 +18,6 @@
 # -------------------------------------------------
 .vscode/
 .idea/
+
+# Ignorar arquivos do Vagrant
+.vagrant/*
