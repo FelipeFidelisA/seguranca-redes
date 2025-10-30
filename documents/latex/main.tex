@@ -93,4 +93,361 @@ O não cumprimento desta Política de Segurança e Uso constitui uma violação 
 \subsection{Revisão da Política}
 
 Esta política será revisada e atualizada anualmente ou sempre que houver mudanças significativas na infraestrutura tecnológica ou nas necessidades de segurança da instituição.
+
+\section{Implementação de Hardening SSH}
+
+\subsection{Objetivo}
+
+Documentar as técnicas de proteção (\emph{hardening}) aplicadas ao serviço SSH para mitigar ataques de força bruta, acesso não autorizado e outras vulnerabilidades comuns em ambientes de rede.
+
+\subsection{Ambiente de Laboratório}
+
+O laboratório virtual consiste em três máquinas virtuais configuradas com Vagrant:
+\begin{itemize}
+    \item \textbf{alvo} (192.168.56.10): Máquina \textbf{sem proteções} de segurança, representando um sistema vulnerável
+    \item \textbf{alvo-hardened} (192.168.56.11): Máquina \textbf{com proteções} aplicadas, demonstrando boas práticas de segurança
+    \item \textbf{atacante} (192.168.56.20): Máquina utilizada para simular ataques e testes de penetração
+\end{itemize}
+
+\subsection{Configurações de Hardening SSH Implementadas}
+
+\subsubsection{1. Desabilitar Login Root via SSH}
+\begin{verbatim}
+PermitRootLogin no
+\end{verbatim}
+
+\textbf{Justificativa:} Impede que atacantes tentem login direto como usuário \texttt{root}, forçando-os a comprometer primeiro uma conta de usuário normal e depois escalar privilégios. Reduz drasticamente a superfície de ataque.
+
+\textbf{Impacto em Ataques:}
+\begin{itemize}
+    \item \textbf{Sem proteção:} Atacante pode tentar diretamente \texttt{ssh root@IP}
+    \item \textbf{Com proteção:} Mesmo descobrindo a senha do root, acesso SSH é negado
+\end{itemize}
+
+\subsubsection{2. Limitar Tentativas de Autenticação}
+\begin{verbatim}
+MaxAuthTries 3
+\end{verbatim}
+
+\textbf{Justificativa:} Reduz o número de tentativas de senha por conexão SSH de 6 (padrão) para 3, diminuindo a eficácia de ataques de força bruta automatizados.
+
+\textbf{Impacto em Ataques:}
+\begin{itemize}
+    \item \textbf{Sem proteção:} 6 tentativas por conexão
+    \item \textbf{Com proteção:} Apenas 3 tentativas; atacante precisa reconectar mais frequentemente
+\end{itemize}
+
+\subsubsection{3. Timeout de Login Reduzido}
+\begin{verbatim}
+LoginGraceTime 30
+\end{verbatim}
+
+\textbf{Justificativa:} Reduz o tempo máximo para completar autenticação de 120 segundos (padrão) para 30 segundos. Conexões lentas ou suspeitas são encerradas rapidamente.
+
+\textbf{Impacto em Ataques:}
+\begin{itemize}
+    \item \textbf{Sem proteção:} Atacantes podem manter conexões abertas por 2 minutos
+    \item \textbf{Com proteção:} Conexões inativas/lentas são fechadas em 30s
+\end{itemize}
+
+\subsubsection{4. Proibir Senhas Vazias}
+\begin{verbatim}
+PermitEmptyPasswords no
+\end{verbatim}
+
+\textbf{Justificativa:} Impede login em contas sem senha definida, eliminando um vetor de ataque óbvio.
+
+\subsubsection{5. Fail2ban - Proteção Contra Força Bruta}
+
+Configuração implementada em \texttt{/etc/fail2ban/jail.local}:
+\begin{verbatim}
+[sshd]
+enabled = true
+port = 22
+maxretry = 3
+bantime = 3600
+findtime = 600
+\end{verbatim}
+
+\textbf{Funcionamento:}
+\begin{itemize}
+    \item Monitora log de autenticação: \texttt{/var/log/auth.log}
+    \item Após \textbf{3 tentativas falhadas} em \textbf{10 minutos} (findtime)
+    \item Bane o endereço IP por \textbf{1 hora} (bantime)
+\end{itemize}
+
+\textbf{Impacto em Ataques:}
+\begin{itemize}
+    \item \textbf{Sem proteção:} Atacante pode realizar milhares de tentativas sem restrição
+    \item \textbf{Com proteção:} Após 3 falhas, IP bloqueado por 1 hora
+    \item Ataques de força bruta SSH tornam-se \textbf{impraticáveis}
+    \item Atacante precisaria de múltiplos IPs ou esperar 1h entre tentativas
+\end{itemize}
+
+\subsubsection{6. Firewall UFW (Uncomplicated Firewall)}
+\begin{verbatim}
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow 22/tcp
+ufw --force enable
+\end{verbatim}
+
+\textbf{Justificativa:} Implementa política de \emph{whitelist} - bloqueia todas as conexões de entrada por padrão, permitindo apenas SSH (porta 22).
+
+\textbf{Impacto em Ataques:}
+\begin{itemize}
+    \item \textbf{Sem proteção:} Todas as portas acessíveis para varredura e exploração
+    \item \textbf{Com proteção:} Apenas porta SSH visível; superfície de ataque drasticamente reduzida
+\end{itemize}
+
+\subsection{Comparação: Sistema Vulnerável vs Protegido}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Proteção} & \textbf{Alvo (Vulnerável)} & \textbf{Alvo-Hardened} \\ \hline
+Login Root SSH & Permitido & Bloqueado \\ \hline
+Tentativas/conexão & 6 & 3 \\ \hline
+Timeout login & 120s & 30s \\ \hline
+Senhas vazias & Possível & Bloqueado \\ \hline
+Ban após falhas & Nunca & 3 tentativas = 1h \\ \hline
+Firewall & Inexistente & Ativo (só SSH) \\ \hline
+Varredura de portas & Todas visíveis & Apenas SSH \\ \hline
+\end{tabular}
+\caption{Comparação de Configurações de Segurança}
+\end{table}
+
+\subsection{Cenário de Ataque: SSH Brute-Force}
+
+\subsubsection{Contra Sistema Vulnerável (alvo)}
+\begin{enumerate}
+    \item Atacante executa: \texttt{ssh vagrant@192.168.56.10}
+    \item Senha incorreta? Tenta novamente sem restrição
+    \item Pode realizar 1000+ tentativas sem consequências
+    \item \textbf{Resultado:} Eventualmente obtém acesso com senha correta
+\end{enumerate}
+
+\subsubsection{Contra Sistema Protegido (alvo-hardened)}
+\begin{enumerate}
+    \item Atacante executa: \texttt{ssh vagrant@192.168.56.11}
+    \item Tentativa 1: senha incorreta
+    \item Tentativa 2: senha incorreta
+    \item Tentativa 3: senha incorreta
+    \item \textbf{Fail2ban detecta} e bane IP 192.168.56.20 por 1 hora
+    \item \textbf{Resultado:} Ataque bloqueado; conexões futuras recusadas
+\end{enumerate}
+
+\subsection{Boas Práticas Adicionais Recomendadas}
+
+Além das configurações implementadas, recomenda-se:
+\begin{enumerate}
+    \item \textbf{Autenticação por chave SSH} ao invés de senha (\texttt{PasswordAuthentication no})
+    \item \textbf{Mudar porta padrão SSH} de 22 para porta alta não-padrão
+    \item \textbf{Implementar Two-Factor Authentication (2FA)} para SSH
+    \item \textbf{Limitar usuários SSH} via \texttt{AllowUsers} ou \texttt{AllowGroups}
+    \item \textbf{Log centralizado} para análise forense em servidor remoto
+    \item \textbf{IDS/IPS} (Intrusion Detection/Prevention System) como Snort ou Suricata
+\end{enumerate}
+
+\subsection{Comandos para Aplicar Configurações}
+
+Para aplicar o hardening SSH na máquina virtual:
+\begin{verbatim}
+vagrant provision alvo-hardened
+\end{verbatim}
+
+Para verificar status das proteções:
+\begin{verbatim}
+# Status do Firewall
+sudo ufw status verbose
+
+# Status do Fail2ban
+sudo systemctl status fail2ban
+sudo fail2ban-client status sshd
+
+# Verificar configuração SSH
+sudo grep -E "PermitRootLogin|MaxAuthTries|LoginGraceTime" \
+  /etc/ssh/sshd_config
+\end{verbatim}
+
+\section{Testes de Validação das Proteções}
+
+\subsection{Objetivo dos Testes}
+
+Validar a eficácia das configurações de hardening SSH implementadas através de testes práticos que demonstrem as diferenças entre um sistema vulnerável e um sistema protegido.
+
+\subsection{Ambiente de Teste}
+
+Todos os testes foram executados a partir da VM \textbf{atacante} (192.168.56.20) contra as duas máquinas-alvo:
+\begin{itemize}
+    \item \textbf{alvo} (192.168.56.10): Sistema vulnerável sem proteções
+    \item \textbf{alvo-hardened} (192.168.56.11): Sistema com hardening aplicado
+\end{itemize}
+
+\subsection{Teste 1: Varredura de Portas (Port Scanning)}
+
+\subsubsection{Metodologia}
+Utilização da ferramenta \texttt{nmap} para identificar portas abertas e serviços expostos em ambas as máquinas.
+
+\subsubsection{Comandos Executados}
+\begin{verbatim}
+# Varredura simples (portas 1-100)
+nmap -p 1-100 192.168.56.10
+nmap -p 1-100 192.168.56.11
+
+# Varredura sem ping (para firewall)
+nmap -Pn -p 20-25 192.168.56.10
+nmap -Pn -p 20-25 192.168.56.11
+\end{verbatim}
+
+\subsubsection{Resultados Obtidos}
+
+\textbf{VM alvo (vulnerável):}
+\begin{verbatim}
+PORT   STATE  SERVICE
+22/tcp open   ssh
+Scan time: 13.12 segundos
+\end{verbatim}
+
+\textbf{VM alvo-hardened (protegida):}
+\begin{verbatim}
+Note: Host seems down (primeira tentativa)
+
+Com -Pn:
+PORT   STATE    SERVICE
+20/tcp filtered ftp-data
+21/tcp filtered ftp
+22/tcp open     ssh
+23/tcp filtered telnet
+24/tcp filtered priv-mail
+25/tcp filtered smtp
+Scan time: 14.33 segundos
+\end{verbatim}
+
+\subsubsection{Análise dos Resultados}
+\begin{itemize}
+    \item A VM protegida bloqueia pacotes ICMP (ping), dificultando detecção inicial
+    \item Firewall UFW filtra portas não autorizadas (status \texttt{filtered})
+    \item Apenas porta 22 (SSH) permanece acessível no sistema protegido
+    \item Tempo de scan ligeiramente maior devido ao timeout de portas filtradas
+\end{itemize}
+
+\subsection{Teste 2: Verificação de Status de Segurança}
+
+\subsubsection{Metodologia}
+Comparação direta do status dos componentes de segurança em ambas as VMs.
+
+\subsubsection{Comandos Executados}
+\begin{verbatim}
+# Verificar firewall
+vagrant ssh alvo -c "sudo ufw status"
+vagrant ssh alvo-hardened -c "sudo ufw status"
+
+# Verificar fail2ban
+vagrant ssh alvo -c "sudo systemctl status fail2ban"
+vagrant ssh alvo-hardened -c "sudo fail2ban-client status sshd"
+\end{verbatim}
+
+\subsubsection{Resultados Obtidos}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Componente} & \textbf{Alvo (Vulnerável)} & \textbf{Alvo-Hardened (Protegido)} \\ \hline
+Firewall UFW & Status: inactive & Status: active \\ \hline
+Regras Firewall & Nenhuma & 22/tcp ALLOW Anywhere \\ \hline
+Fail2ban & Não instalado & Active (running) \\ \hline
+Monitoramento & Nenhum & /var/log/auth.log \\ \hline
+IPs banidos & N/A & 0 (nenhum ataque ainda) \\ \hline
+\end{tabular}
+\caption{Comparação de Status dos Componentes de Segurança}
+\end{table}
+
+\subsection{Teste 3: Configurações SSH}
+
+\subsubsection{Metodologia}
+Inspeção direta do arquivo de configuração SSH (\texttt{/etc/ssh/sshd\_config}) em ambas as máquinas.
+
+\subsubsection{Comandos Executados}
+\begin{verbatim}
+vagrant ssh alvo -c "sudo grep -E 'PermitRootLogin|MaxAuthTries|\
+LoginGraceTime|PermitEmptyPasswords' /etc/ssh/sshd_config | grep -v '^#'"
+
+vagrant ssh alvo-hardened -c "sudo grep -E 'PermitRootLogin|\
+MaxAuthTries|LoginGraceTime|PermitEmptyPasswords' \
+/etc/ssh/sshd_config | grep -v '^#'"
+\end{verbatim}
+
+\subsubsection{Resultados Obtidos}
+
+\textbf{VM alvo (vulnerável):}
+\begin{verbatim}
+(Nenhuma configuração explícita - valores padrão)
+\end{verbatim}
+
+\textbf{VM alvo-hardened (protegida):}
+\begin{verbatim}
+LoginGraceTime 30
+PermitRootLogin no
+MaxAuthTries 3
+PermitEmptyPasswords no
+\end{verbatim}
+
+\subsection{Resultados Consolidados}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Teste} & \textbf{Alvo} & \textbf{Alvo-Hardened} & \textbf{Status} \\ \hline
+Port Scanning & Todas visíveis & Apenas SSH & \checkmark \\ \hline
+Firewall UFW & Inativo & Ativo & \checkmark \\ \hline
+Fail2ban & Não instalado & Ativo & \checkmark \\ \hline
+SSH Hardening & Padrão & Configurado & \checkmark \\ \hline
+Port Filtering & Nenhum & 5 portas filtradas & \checkmark \\ \hline
+\end{tabular}
+\caption{Resumo dos Resultados dos Testes}
+\end{table}
+
+\subsection{Conclusões dos Testes}
+
+\subsubsection{Eficácia das Proteções}
+\begin{enumerate}
+    \item \textbf{Firewall UFW:} Funcionando corretamente, bloqueando todas as portas exceto SSH
+    \item \textbf{Fail2ban:} Ativo e monitorando tentativas de acesso via SSH
+    \item \textbf{SSH Hardening:} Todas as 4 configurações aplicadas com sucesso
+    \item \textbf{Redução de Superfície de Ataque:} Apenas porta 22 acessível vs múltiplas portas potencialmente abertas
+\end{enumerate}
+
+\subsubsection{Impacto na Segurança}
+A implementação das proteções resultou em:
+\begin{itemize}
+    \item \textbf{Visibilidade Reduzida:} Sistema protegido não responde a pings, dificultando detecção
+    \item \textbf{Filtragem de Portas:} 5 de 6 portas testadas retornam status "filtered" ao invés de "closed"
+    \item \textbf{Configuração Robusta:} SSH configurado com limites de tentativas e timeouts reduzidos
+    \item \textbf{Monitoramento Ativo:} Fail2ban pronto para banir IPs após 3 tentativas falhadas
+\end{itemize}
+
+\subsubsection{Vulnerabilidades Mitigadas}
+\begin{itemize}
+    \item Ataques de força bruta SSH (fail2ban + MaxAuthTries)
+    \item Exploração de portas abertas desnecessárias (UFW)
+    \item Login direto como root (PermitRootLogin no)
+    \item Conexões SSH prolongadas (LoginGraceTime 30)
+    \item Contas sem senha (PermitEmptyPasswords no)
+\end{itemize}
+
+\subsection{Recomendações Finais}
+
+Com base nos testes realizados, confirma-se que o hardening SSH foi implementado com sucesso. Para ambientes de produção, recomenda-se adicionalmente:
+\begin{enumerate}
+    \item Implementar autenticação por chave SSH ao invés de senha
+    \item Configurar logging centralizado para análise forense
+    \item Realizar testes de penetração periódicos
+    \item Manter sistema operacional e serviços sempre atualizados
+    \item Implementar monitoramento de integridade de arquivos (AIDE, Tripwire)
+\end{enumerate}
+
 \end{document}
