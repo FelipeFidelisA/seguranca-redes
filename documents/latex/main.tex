@@ -395,6 +395,101 @@ MaxAuthTries 3
 PermitEmptyPasswords no
 \end{verbatim}
 
+\subsection{Teste 4: Enumeração de Usuários (User Enumeration)}
+
+\subsubsection{Metodologia}
+Ataque que tenta descobrir quais contas de usuário existem no sistema através de tentativas de conexão SSH. Atacantes usam essa técnica para identificar alvos válidos antes de realizar ataques de força bruta.
+
+\subsubsection{Técnica Utilizada}
+O ataque utiliza o método de tentar autenticação sem credenciais (\texttt{PreferredAuthentications=none}). Usuários válidos retornam mensagem específica "Permission denied", enquanto usuários inválidos podem ter comportamento diferente (timeout, mensagens distintas).
+
+\subsubsection{Comandos Executados}
+\begin{verbatim}
+# Script executado da VM atacante
+bash /vagrant/ataque_enumeracao_usuarios.sh 192.168.56.10
+bash /vagrant/ataque_enumeracao_usuarios.sh 192.168.56.11
+
+# Técnica base:
+ssh -o PreferredAuthentications=none \
+    -o StrictHostKeyChecking=no \
+    -o ConnectTimeout=3 \
+    usuario@IP 2>&1 | grep "Permission denied"
+\end{verbatim}
+
+\subsubsection{Lista de Usuários Testados}
+root, admin, administrator, vagrant, ubuntu, guest, test, user, operator, backup, mysql, postgres, apache, nginx, www-data, nobody (total: 16 usuários comuns)
+
+\subsubsection{Resultados Obtidos}
+
+\textbf{VM alvo (vulnerável):}
+\begin{verbatim}
+Usuários CONFIRMADOS (16):
+- root, admin, administrator
+- vagrant, ubuntu, guest
+- test, user, operator, backup
+- mysql, postgres, apache, nginx
+- www-data, nobody
+
+Taxa de sucesso: 100% (16/16)
+\end{verbatim}
+
+\textbf{VM alvo-hardened (protegida):}
+\begin{verbatim}
+Usuários CONFIRMADOS (6):
+- root, admin, administrator
+- vagrant, ubuntu, guest
+
+NÃO CONFIRMADOS (10):
+- test, user, operator, backup
+- mysql, postgres, apache, nginx
+- www-data, nobody
+
+Taxa de sucesso: 37.5% (6/16)
+Timeouts: 62.5% das tentativas
+\end{verbatim}
+
+\subsubsection{Análise Comparativa}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Métrica} & \textbf{Alvo (Vulnerável)} & \textbf{Alvo-Hardened} \\ \hline
+Usuários Identificados & 16 & 6 \\ \hline
+Taxa de Sucesso Ataque & 100\% & 37.5\% \\ \hline
+Informação Vazada & Total & Parcial \\ \hline
+Tempo Médio/Teste & ~3s & ~5s (timeouts) \\ \hline
+Eficácia da Proteção & N/A & 62.5\% redução \\ \hline
+\end{tabular}
+\caption{Comparação de Enumeração de Usuários}
+\end{table}
+
+\subsubsection{Impacto de Segurança}
+
+\textbf{Sistema Vulnerável:}
+\begin{itemize}
+    \item Atacante obtém lista completa de 16 usuários válidos
+    \item Pode direcionar ataques de força bruta para contas confirmadas
+    \item Identifica contas de serviço (mysql, apache, nginx) revelando serviços instalados
+    \item Respostas rápidas facilitam enumeração automatizada
+\end{itemize}
+
+\textbf{Sistema Protegido:}
+\begin{itemize}
+    \item \textbf{LoginGraceTime 30s:} Conexões lentas/suspeitas são encerradas rapidamente
+    \item \textbf{Fail2ban:} Múltiplas tentativas de conexão são detectadas e o IP pode ser banido
+    \item \textbf{Timeouts:} 10 usuários não puderam ser confirmados (62.5\% menos informação)
+    \item \textbf{Dificulta Automação:} Tempos de resposta variáveis dificultam scripts automatizados
+\end{itemize}
+
+\textbf{Vulnerabilidades Expostas no Sistema Vulnerável:}
+\begin{enumerate}
+    \item Revela presença de bancos de dados (mysql, postgres)
+    \item Identifica servidor web ativo (apache, nginx, www-data)
+    \item Mostra contas de backup potencialmente com privilégios elevados
+    \item Fornece lista de alvos para próxima fase do ataque (força bruta)
+\end{enumerate}
+
 \subsection{Resultados Consolidados}
 
 \begin{table}[h]
@@ -407,6 +502,8 @@ Firewall UFW & Inativo & Ativo & \checkmark \\ \hline
 Fail2ban & Não instalado & Ativo & \checkmark \\ \hline
 SSH Hardening & Padrão & Configurado & \checkmark \\ \hline
 Port Filtering & Nenhum & 5 portas filtradas & \checkmark \\ \hline
+Enumeração Usuários & 16 encontrados & 6 encontrados & \checkmark \\ \hline
+Redução Info Vazada & 0\% & 62.5\% & \checkmark \\ \hline
 \end{tabular}
 \caption{Resumo dos Resultados dos Testes}
 \end{table}
@@ -437,6 +534,7 @@ A implementação das proteções resultou em:
     \item Login direto como root (PermitRootLogin no)
     \item Conexões SSH prolongadas (LoginGraceTime 30)
     \item Contas sem senha (PermitEmptyPasswords no)
+    \item \textbf{Enumeração de usuários} (LoginGraceTime + fail2ban reduzem sucesso em 62.5\%)
 \end{itemize}
 
 \subsection{Recomendações Finais}
