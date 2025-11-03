@@ -13,7 +13,97 @@
 \maketitle
 
 \section{Introdução}
-Este é um documento mínimo em LaTeX. Substitua o conteúdo conforme necessário.
+
+A segurança da informação tornou-se um dos pilares fundamentais para a operação de sistemas computacionais em ambientes acadêmicos, corporativos e governamentais. Com o aumento exponencial de ataques cibernéticos e a sofisticação das técnicas utilizadas por invasores, a implementação de medidas preventivas e defensivas deixou de ser opcional para se tornar essencial.
+
+No contexto de infraestruturas de rede, o protocolo SSH (\emph{Secure Shell}) é amplamente utilizado para acesso remoto seguro a servidores e dispositivos de rede. Entretanto, configurações padrão inadequadas, práticas inseguras de gerenciamento de credenciais e a ausência de proteções complementares tornam os serviços SSH vulneráveis a diversos vetores de ataque, incluindo força bruta, enumeração de usuários, roubo de chaves privadas e manipulação de logs.
+
+Este trabalho apresenta um estudo abrangente sobre \textbf{hardening SSH} (enrijecimento de segurança), demonstrando através de testes práticos em ambiente virtualizado a diferença entre sistemas vulneráveis e sistemas protegidos. Utilizando a metodologia de \emph{red team vs blue team}, foram desenvolvidos e executados oito ataques distintos que cobrem as principais fases da cadeia de ataque (\emph{cyber kill chain}): reconhecimento, acesso inicial, descoberta de ativos, acesso a credenciais, movimento lateral e evasão de defesas.
+
+\subsection{Objetivos}
+
+Os objetivos deste trabalho são:
+
+\begin{enumerate}
+    \item \textbf{Implementar técnicas de hardening SSH} em ambiente controlado, aplicando configurações de segurança recomendadas por organizações como NIST, CIS e OWASP;
+    
+    \item \textbf{Simular ataques reais} utilizando ferramentas e scripts desenvolvidos especificamente para este estudo, cobrindo vetores de ataque como força bruta, enumeração de usuários, roubo de chaves SSH e manipulação de logs;
+    
+    \item \textbf{Comparar quantitativamente} a eficácia das proteções implementadas, medindo taxas de sucesso de ataques em sistemas vulneráveis versus sistemas protegidos;
+    
+    \item \textbf{Documentar boas práticas} de segurança aplicáveis a ambientes de produção, incluindo políticas de uso, configurações de firewall, detecção de intrusões e auditoria de logs;
+    
+    \item \textbf{Contribuir para a formação de profissionais} de segurança da informação através da demonstração prática de técnicas defensivas e ofensivas.
+\end{enumerate}
+
+\subsection{Justificativa}
+
+Ataques direcionados a serviços SSH representam uma das principais ameaças à segurança de servidores corporativos, VPS (\emph{Virtual Private Servers}) em nuvem e infraestruturas críticas. Segundo dados do SANS Institute, tentativas de força bruta SSH são uma das técnicas mais utilizadas por atacantes, com milhões de tentativas diárias detectadas em honeypots distribuídos globalmente.
+
+A motivação para este estudo surge da necessidade de:
+\begin{itemize}
+    \item \textbf{Reduzir a superfície de ataque} de sistemas que utilizam SSH como principal meio de acesso remoto;
+    \item \textbf{Demonstrar de forma prática} o impacto de configurações inseguras através de testes de penetração controlados;
+    \item \textbf{Estabelecer políticas de segurança} aplicáveis a laboratórios de informática em instituições de ensino;
+    \item \textbf{Prevenir comprometimento de infraestruturas cloud} através de proteção de chaves SSH privadas.
+\end{itemize}
+
+\subsection{Metodologia}
+
+A metodologia adotada neste trabalho consiste em:
+
+\begin{enumerate}
+    \item \textbf{Construção de Ambiente Virtualizado:} Criação de três máquinas virtuais usando Vagrant e VirtualBox, simulando um cenário de ataque realista:
+        \begin{itemize}
+            \item \textbf{VM Atacante} (192.168.56.20): origem dos ataques, equipada com ferramentas de pentest;
+            \item \textbf{VM Alvo - Vulnerável} (192.168.56.10): sistema com configurações padrão inseguras;
+            \item \textbf{VM Alvo - Hardened} (192.168.56.11): sistema com hardening SSH completo aplicado.
+        \end{itemize}
+    
+    \item \textbf{Desenvolvimento de Scripts de Ataque:} Criação de cinco scripts Bash para simular ataques reais:
+        \begin{itemize}
+            \item Reconhecimento SSH e mapeamento de rede;
+            \item Enumeração de usuários via SSH;
+            \item Força bruta e teste de proteções;
+            \item Manipulação e evasão de logs;
+            \item Roubo de chaves SSH privadas e movimento lateral.
+        \end{itemize}
+    
+    \item \textbf{Implementação de Hardening:} Aplicação de configurações de segurança incluindo:
+        \begin{itemize}
+            \item Hardening do serviço SSH (\texttt{sshd\_config});
+            \item Configuração de firewall UFW;
+            \item Instalação e configuração de Fail2ban;
+            \item Proteção de logs com atributo imutável (\texttt{chattr +i});
+            \item Uso de chaves SSH protegidas por senha forte.
+        \end{itemize}
+    
+    \item \textbf{Execução de Testes e Coleta de Métricas:} Execução dos ataques em ambos os alvos, documentando:
+        \begin{itemize}
+            \item Taxa de sucesso/falha de cada ataque;
+            \item Quantidade de informações vazadas;
+            \item Tempo de detecção e bloqueio (fail2ban);
+            \item Logs gerados e evidências forenses.
+        \end{itemize}
+    
+    \item \textbf{Análise Comparativa:} Elaboração de tabelas, gráficos e análises qualitativas demonstrando a eficácia das proteções implementadas.
+\end{enumerate}
+
+\subsection{Estrutura do Documento}
+
+Este documento está organizado da seguinte forma:
+
+\begin{itemize}
+    \item \textbf{Seção 2:} Política de Segurança e Uso dos Computadores dos Laboratórios — estabelece diretrizes para uso seguro de recursos computacionais em ambiente acadêmico;
+    
+    \item \textbf{Seção 3:} Implementação de Hardening SSH — descreve configurações técnicas aplicadas no sistema protegido;
+    
+    \item \textbf{Seção 4:} Testes de Validação das Proteções — apresenta testes de varredura de portas, verificação de status e auditoria de configurações;
+    
+    \item \textbf{Seção 5:} Execução dos Ataques e Resultados — detalha oito ataques executados, resultados obtidos e análise de impacto;
+    
+    \item \textbf{Seção 6:} Conclusões Finais e Recomendações — resume lições aprendidas e melhores práticas para ambientes de produção.
+\end{itemize}
 
 \section{Política de Segurança e Uso dos Computadores dos Laboratórios}
 
